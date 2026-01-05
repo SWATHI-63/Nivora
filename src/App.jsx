@@ -50,8 +50,7 @@ function AppContent() {
       <header className="app-header">
         <div className="header-content">
           <div className="app-logo">
-            <span>💎</span>
-            Nivora
+            <img src="/nivora-logo.svg" alt="Nivora Logo" style={{ height: '40px' }} />
           </div>
           <div className="header-actions">
             <div className="user-greeting">

@@ -18,13 +18,36 @@ export const AuthProvider = ({ children }) => {
     // Load users from localStorage
     const storedUsers = localStorage.getItem('nivora-users');
     if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
-    }
+      const parsedUsers = JSON.parse(storedUsers);
+      setUsers(parsedUsers);
 
-    // Check if user is logged in
-    const loggedInUser = localStorage.getItem('nivora-current-user');
-    if (loggedInUser) {
-      setCurrentUser(JSON.parse(loggedInUser));
+      // Check if user is logged in and sync with latest user data
+      const loggedInUser = localStorage.getItem('nivora-current-user');
+      if (loggedInUser) {
+        const currentUserData = JSON.parse(loggedInUser);
+        // Find the user in stored users to get the latest data
+        const latestUserData = parsedUsers.find(u => u.id === currentUserData.id);
+        if (latestUserData) {
+          const userWithoutPassword = {
+            id: latestUserData.id,
+            email: latestUserData.email,
+            name: latestUserData.name,
+            photo: latestUserData.photo || null,
+            bio: latestUserData.bio || '',
+            coverPhoto: latestUserData.coverPhoto || null
+          };
+          setCurrentUser(userWithoutPassword);
+          localStorage.setItem('nivora-current-user', JSON.stringify(userWithoutPassword));
+        } else {
+          setCurrentUser(currentUserData);
+        }
+      }
+    } else {
+      // Check if user is logged in
+      const loggedInUser = localStorage.getItem('nivora-current-user');
+      if (loggedInUser) {
+        setCurrentUser(JSON.parse(loggedInUser));
+      }
     }
   }, []);
 
@@ -58,7 +81,8 @@ export const AuthProvider = ({ children }) => {
         email: user.email, 
         name: user.name,
         photo: user.photo || null,
-        bio: user.bio || ''
+        bio: user.bio || '',
+        coverPhoto: user.coverPhoto || null
       };
       setCurrentUser(userWithoutPassword);
       localStorage.setItem('nivora-current-user', JSON.stringify(userWithoutPassword));
