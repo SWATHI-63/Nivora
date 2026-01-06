@@ -4,16 +4,16 @@
   "description": "Manage your finances, goals, and tasks in one place",
   "icons": [
     {
-      "src": "nivora-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "nivora-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#22c55e",
+  "theme_color": "#1a5276",
   "background_color": "#ffffff",
   "categories": ["productivity", "finance", "utilities"],
   "scope": "/",
