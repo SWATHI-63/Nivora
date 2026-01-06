@@ -35,3 +35,17 @@ export const useGoals = () => {
 export const useTasks = () => {
   return useLocalStorage('nivora-tasks', []);
 };
+
+export const useNotes = () => {
+  return useLocalStorage('nivora-notes', []);
+};
+
+export const useStreaks = () => {
+  return useLocalStorage('nivora-streaks', {
+    currentStreak: 0,
+    longestStreak: 0,
+    lastActiveDate: null,
+    totalActiveDays: 0,
+    streakHistory: []
+  });
+};

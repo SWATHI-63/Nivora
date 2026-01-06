@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "mongoose": "^9.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1"
@@ -11,7 +14,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "npm run build && netlify deploy --prod",
+    "deploy:preview": "npm run build && netlify deploy"
   },
   "eslintConfig": {
     "extends": [
@@ -29,5 +34,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "env": {
+    "MONGODB_URI": "mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/nivora?retryWrites=true&w=majority",
+    "PORT": 5000
   }
 }

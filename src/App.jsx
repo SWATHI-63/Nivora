@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import Dashboard from './components/Dashboard/Dashboard';
@@ -9,6 +10,9 @@ import Goals from './components/Goals/Goals';
 import Tasks from './components/Tasks/Tasks';
 import Profile from './components/Profile/Profile';
 import Analytics from './components/Analytics/Analytics';
+import Notifications from './components/Notifications/Notifications';
+import Settings from './components/Settings/Settings';
+import PWAInstall from './components/PWAInstall/PWAInstall';
 import './App.css';
 
 function AppContent() {
@@ -16,6 +20,7 @@ function AppContent() {
   const [authView, setAuthView] = useState('login');
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useAuth();
+  const { unreadCount } = useNotifications(); // eslint-disable-line no-unused-vars
 
   // Show auth screens if user is not logged in
   if (!currentUser) {
@@ -38,6 +43,10 @@ function AppContent() {
         return <Tasks />;
       case 'analytics':
         return <Analytics />;
+      case 'notifications':
+        return <Notifications />;
+      case 'settings':
+        return <Settings />;
       case 'profile':
         return <Profile />;
       default:
@@ -53,7 +62,11 @@ function AppContent() {
             <img src="/nivora-logo.svg" alt="Nivora Logo" style={{ height: '40px' }} />
           </div>
           <div className="header-actions">
-            <div className="user-greeting">
+            <button 
+              className="user-greeting"
+              onClick={() => setCurrentView('profile')}
+              title="Go to Profile"
+            >
               <div className="user-avatar-small">
                 {currentUser.photo ? (
                   <img src={currentUser.photo} alt={currentUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
@@ -64,8 +77,8 @@ function AppContent() {
               <span className="user-name">
                 Hi, {currentUser.name}!
               </span>
-            </div>
-            <button className="theme-toggle" onClick={toggleTheme}>
+            </button>
+            <button className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
               <span>{theme === 'light' ? '🌙' : '☀️'}</span>
             </button>
           </div>
@@ -107,18 +120,11 @@ function AppContent() {
             <span>Tasks</span>
           </button>
           <button
-            className={`nav-item ${currentView === 'analytics' ? 'active' : ''}`}
-            onClick={() => setCurrentView('analytics')}
+            className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
+            onClick={() => setCurrentView('settings')}
           >
-            <span className="icon">📊</span>
-            <span>Analytics</span>
-          </button>
-          <button
-            className={`nav-item ${currentView === 'profile' ? 'active' : ''}`}
-            onClick={() => setCurrentView('profile')}
-          >
-            <span className="icon">👤</span>
-            <span>Profile</span>
+            <span className="icon">⚙️</span>
+            <span>Settings</span>
           </button>
         </div>
       </nav>
@@ -130,7 +136,10 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <AppContent />
+        <NotificationProvider>
+          <AppContent />
+          <PWAInstall />
+        </NotificationProvider>
       </ThemeProvider>
     </AuthProvider>
   );

@@ -1,11 +1,89 @@
-import React from 'react';
-import { useFinances, useGoals, useTasks } from '../../hooks/useLocalStorage';
+import React, { useState } from 'react';
+import { useFinances, useGoals, useTasks, useNotes, useStreaks } from '../../hooks/useLocalStorage';
 import './Dashboard.css';
 
 function Dashboard() {
   const [finances] = useFinances();
   const [goals] = useGoals();
   const [tasks] = useTasks();
+  const [notes, setNotes] = useNotes();
+  const [streaks, setStreaks] = useStreaks();
+  
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [noteDate, setNoteDate] = useState(new Date().toISOString().split('T')[0]);
+  const [noteColor, setNoteColor] = useState('#22c55e');
+  const [editingNote, setEditingNote] = useState(null);
+  const [expandedNote, setExpandedNote] = useState(null);
+
+  // Update streak on page load
+  React.useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const lastActive = streaks.lastActiveDate;
+    
+    if (lastActive !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      
+      let newStreak = streaks.currentStreak;
+      if (lastActive === yesterdayStr) {
+        newStreak = streaks.currentStreak + 1;
+      } else if (lastActive !== today) {
+        newStreak = 1;
+      }
+      
+      setStreaks({
+        ...streaks,
+        currentStreak: newStreak,
+        longestStreak: Math.max(streaks.longestStreak, newStreak),
+        lastActiveDate: today,
+        totalActiveDays: streaks.totalActiveDays + 1,
+        streakHistory: [...streaks.streakHistory, today].slice(-30)
+      });
+    }
+  }, []);
+
+  const noteColors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+  const handleAddNote = () => {
+    if (!noteText.trim()) return;
+    
+    const newNote = {
+      id: Date.now(),
+      text: noteText,
+      date: noteDate,
+      color: noteColor,
+      createdAt: new Date().toISOString()
+    };
+    
+    if (editingNote) {
+      setNotes(notes.map(n => n.id === editingNote.id ? { ...newNote, id: editingNote.id } : n));
+    } else {
+      setNotes([newNote, ...notes]);
+    }
+    
+    setNoteText('');
+    setNoteDate(new Date().toISOString().split('T')[0]);
+    setNoteColor('#22c55e');
+    setShowNoteModal(false);
+    setEditingNote(null);
+  };
+
+  const handleEditNote = (note) => {
+    setEditingNote(note);
+    setNoteText(note.text);
+    setNoteDate(note.date);
+    setNoteColor(note.color);
+    setShowNoteModal(true);
+  };
+
+  const handleDeleteNote = (noteId) => {
+    setNotes(notes.filter(n => n.id !== noteId));
+  };
+
+  // Get notes for display (sorted by date, most recent first)
+  const sortedNotes = [...notes].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
 
   // Calculate financial summary
   const totalIncome = finances
@@ -138,6 +216,124 @@ function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Notes Section */}
+      <div className="quick-view-card notes-section">
+        <div className="notes-header">
+          <h2 className="section-title">📝 Notes</h2>
+          <button className="add-note-btn" onClick={() => setShowNoteModal(true)}>
+            + Add Note
+          </button>
+        </div>
+        
+        {sortedNotes.length > 0 ? (
+          <div className="notes-grid">
+            {sortedNotes.map((note) => (
+              <div 
+                key={note.id} 
+                className={`note-card ${expandedNote === note.id ? 'expanded' : ''}`}
+                onClick={() => setExpandedNote(expandedNote === note.id ? null : note.id)}
+              >
+                <div className="note-calendar-header" style={{ backgroundColor: note.color }}>
+                  <span className="note-month">
+                    {new Date(note.date).toLocaleDateString('en-US', { month: 'short' })}
+                  </span>
+                  <span className="note-day">
+                    {new Date(note.date).getDate()}
+                  </span>
+                  <span className="note-year">
+                    {new Date(note.date).getFullYear()}
+                  </span>
+                </div>
+                <div className="note-body">
+                  {expandedNote === note.id ? (
+                    <div className="note-expanded-content">
+                      <div className="note-text">{note.text}</div>
+                      <div className="note-actions" onClick={(e) => e.stopPropagation()}>
+                        <button className="note-edit-btn" onClick={() => handleEditNote(note)}>✏️ Edit</button>
+                        <button className="note-delete-btn" onClick={() => handleDeleteNote(note.id)}>🗑️ Delete</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="note-preview">
+                      <span className="note-tap-hint">Tap to view</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-state-icon">📝</div>
+            <p>No notes yet. Add your first note!</p>
+          </div>
+        )}
+      </div>
+
+      {/* Note Modal */}
+      {showNoteModal && (
+        <div className="note-modal-overlay" onClick={() => setShowNoteModal(false)}>
+          <div className="note-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="note-modal-header">
+              <h3>{editingNote ? 'Edit Note' : 'Add New Note'}</h3>
+              <button className="note-modal-close" onClick={() => {
+                setShowNoteModal(false);
+                setEditingNote(null);
+                setNoteText('');
+              }}>×</button>
+            </div>
+            
+            <div className="note-modal-body">
+              <div className="note-form-group">
+                <label>Date</label>
+                <input
+                  type="date"
+                  value={noteDate}
+                  onChange={(e) => setNoteDate(e.target.value)}
+                  className="note-date-input"
+                />
+              </div>
+              
+              <div className="note-form-group">
+                <label>Note</label>
+                <textarea
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="Write your note here..."
+                  className="note-textarea"
+                  rows={4}
+                />
+              </div>
+              
+              <div className="note-form-group">
+                <label>Color</label>
+                <div className="note-color-picker">
+                  {noteColors.map((color) => (
+                    <button
+                      key={color}
+                      className={`note-color-btn ${noteColor === color ? 'active' : ''}`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setNoteColor(color)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="note-modal-footer">
+              <button className="note-cancel-btn" onClick={() => {
+                setShowNoteModal(false);
+                setEditingNote(null);
+                setNoteText('');
+              }}>Cancel</button>
+              <button className="note-save-btn" onClick={handleAddNote}>
+                {editingNote ? 'Update' : 'Add Note'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

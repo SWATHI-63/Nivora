@@ -75,9 +75,11 @@ function Goals() {
     <div className="goals">
       <div className="goals-header">
         <h1>🎯 Goals</h1>
-        <button className="add-goal-btn" onClick={() => setShowModal(true)}>
-          + New Goal
-        </button>
+        <div className="goals-header-actions">
+          <button className="add-goal-btn" onClick={() => setShowModal(true)}>
+            + New Goal
+          </button>
+        </div>
       </div>
 
       <div className="goals-filter">

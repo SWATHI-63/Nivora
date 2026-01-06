@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { useFinances, useGoals, useTasks } from '../../hooks/useLocalStorage';
+import { useFinances, useGoals, useTasks, useNotes, useStreaks } from '../../hooks/useLocalStorage';
 import './Profile.css';
 
 function Profile() {
@@ -9,6 +9,8 @@ function Profile() {
   const [finances] = useFinances();
   const [goals] = useGoals();
   const [tasks] = useTasks();
+  const [notes] = useNotes();
+  const [streaks] = useStreaks();
   const fileInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
@@ -86,6 +88,47 @@ function Profile() {
   const completedGoals = goals.filter(g => g.completed).length;
   const completedTasks = tasks.filter(t => t.completed).length;
 
+  // Analytics calculations
+  const expensesByCategory = useMemo(() => {
+    const categoryTotals = {};
+    finances
+      .filter(f => f.type === 'expense')
+      .forEach(transaction => {
+        const category = transaction.category || 'Other';
+        categoryTotals[category] = (categoryTotals[category] || 0) + transaction.amount;
+      });
+    return categoryTotals;
+  }, [finances]);
+
+  const monthlyData = useMemo(() => {
+    const months = {};
+    finances.forEach(transaction => {
+      const date = new Date(transaction.date);
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      
+      if (!months[monthKey]) {
+        months[monthKey] = { income: 0, expense: 0, month: date.toLocaleString('default', { month: 'short' }) };
+      }
+      
+      if (transaction.type === 'income') {
+        months[monthKey].income += transaction.amount;
+      } else {
+        months[monthKey].expense += transaction.amount;
+      }
+    });
+    
+    return Object.values(months).slice(-6);
+  }, [finances]);
+
+  const topCategories = Object.entries(expensesByCategory)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
+
+  const maxMonthlyAmount = Math.max(
+    ...monthlyData.map(m => Math.max(m.income, m.expense)),
+    1
+  );
+
   // Recent activities
   const recentActivities = [
     ...finances.slice(-5).map((f) => ({
@@ -114,15 +157,46 @@ function Profile() {
     })),
   ].slice(0, 6);
 
-  // Achievement badges
+  // Achievement badges - More comprehensive
   const achievements = [
-    { icon: '🏆', label: 'First Goal', unlocked: goals.length > 0 },
-    { icon: '💎', label: 'Saver', unlocked: balance > 1000 },
-    { icon: '🎯', label: 'Achiever', unlocked: completedGoals >= 3 },
-    { icon: '⚡', label: 'Productive', unlocked: completedTasks >= 10 },
-    { icon: '📊', label: 'Tracker', unlocked: finances.length >= 20 },
-    { icon: '🌟', label: 'Superstar', unlocked: completedGoals >= 5 && completedTasks >= 20 },
+    // Getting Started
+    { icon: '🚀', label: 'First Step', description: 'Created first goal', unlocked: goals.length > 0, category: 'starter' },
+    { icon: '💸', label: 'Tracker', description: 'First transaction', unlocked: finances.length > 0, category: 'starter' },
+    { icon: '📝', label: 'Noted', description: 'First note created', unlocked: notes.length > 0, category: 'starter' },
+    { icon: '✅', label: 'Task Master', description: 'First task added', unlocked: tasks.length > 0, category: 'starter' },
+    
+    // Savings Milestones
+    { icon: '💰', label: 'Penny Saver', description: 'Balance > ₹1,000', unlocked: balance > 1000, category: 'savings' },
+    { icon: '💎', label: 'Smart Saver', description: 'Balance > ₹10,000', unlocked: balance > 10000, category: 'savings' },
+    { icon: '🏦', label: 'Bank Boss', description: 'Balance > ₹50,000', unlocked: balance > 50000, category: 'savings' },
+    { icon: '🤑', label: 'Wealth Builder', description: 'Balance > ₹1,00,000', unlocked: balance > 100000, category: 'savings' },
+    
+    // Goal Achievements
+    { icon: '🎯', label: 'Goal Getter', description: 'Complete 1 goal', unlocked: completedGoals >= 1, category: 'goals' },
+    { icon: '🏆', label: 'Achiever', description: 'Complete 3 goals', unlocked: completedGoals >= 3, category: 'goals' },
+    { icon: '👑', label: 'Goal Master', description: 'Complete 5 goals', unlocked: completedGoals >= 5, category: 'goals' },
+    { icon: '🌟', label: 'Unstoppable', description: 'Complete 10 goals', unlocked: completedGoals >= 10, category: 'goals' },
+    
+    // Task Achievements  
+    { icon: '⚡', label: 'Productive', description: 'Complete 10 tasks', unlocked: completedTasks >= 10, category: 'tasks' },
+    { icon: '🔥', label: 'On Fire', description: 'Complete 25 tasks', unlocked: completedTasks >= 25, category: 'tasks' },
+    { icon: '💪', label: 'Powerhouse', description: 'Complete 50 tasks', unlocked: completedTasks >= 50, category: 'tasks' },
+    { icon: '🎖️', label: 'Task Legend', description: 'Complete 100 tasks', unlocked: completedTasks >= 100, category: 'tasks' },
+    
+    // Streak Achievements
+    { icon: '📅', label: 'Getting Started', description: '3-day streak', unlocked: streaks.currentStreak >= 3, category: 'streaks' },
+    { icon: '🔥', label: 'Week Warrior', description: '7-day streak', unlocked: streaks.currentStreak >= 7, category: 'streaks' },
+    { icon: '⚡', label: 'Streak Master', description: '14-day streak', unlocked: streaks.currentStreak >= 14, category: 'streaks' },
+    { icon: '🌈', label: 'Month Champion', description: '30-day streak', unlocked: streaks.currentStreak >= 30, category: 'streaks' },
+    
+    // Activity Achievements
+    { icon: '📊', label: 'Data Lover', description: '20+ transactions', unlocked: finances.length >= 20, category: 'activity' },
+    { icon: '📈', label: 'Analyst', description: '50+ transactions', unlocked: finances.length >= 50, category: 'activity' },
+    { icon: '🧠', label: 'Note Taker', description: '10+ notes', unlocked: notes.length >= 10, category: 'activity' },
+    { icon: '🌟', label: 'Superstar', description: 'All-rounder', unlocked: completedGoals >= 5 && completedTasks >= 20 && streaks.currentStreak >= 7, category: 'special' },
   ];
+
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
 
   return (
     <div className="profile-wrapper">
@@ -240,16 +314,22 @@ function Profile() {
           <span>📊</span> Overview
         </button>
         <button 
-          className={`profile-tab ${activeTab === 'activity' ? 'active' : ''}`}
-          onClick={() => setActiveTab('activity')}
+          className={`profile-tab ${activeTab === 'streaks' ? 'active' : ''}`}
+          onClick={() => setActiveTab('streaks')}
         >
-          <span>⚡</span> Activity
+          <span>🔥</span> Streaks
         </button>
         <button 
           className={`profile-tab ${activeTab === 'achievements' ? 'active' : ''}`}
           onClick={() => setActiveTab('achievements')}
         >
           <span>🏆</span> Achievements
+        </button>
+        <button 
+          className={`profile-tab ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          <span>📈</span> Analytics
         </button>
       </div>
 
@@ -330,8 +410,57 @@ function Profile() {
           </div>
         )}
 
-        {activeTab === 'activity' && (
+        {activeTab === 'streaks' && (
           <div className="profile-tab-content">
+            {/* Streak Stats */}
+            <div className="profile-section">
+              <h2 className="profile-section-title">🔥 Your Streaks</h2>
+              <div className="profile-streak-stats">
+                <div className="profile-streak-card current">
+                  <div className="profile-streak-flame">🔥</div>
+                  <div className="profile-streak-value">{streaks.currentStreak}</div>
+                  <div className="profile-streak-label">Current Streak</div>
+                </div>
+                <div className="profile-streak-card best">
+                  <div className="profile-streak-flame">🏆</div>
+                  <div className="profile-streak-value">{streaks.longestStreak}</div>
+                  <div className="profile-streak-label">Longest Streak</div>
+                </div>
+                <div className="profile-streak-card total">
+                  <div className="profile-streak-flame">📅</div>
+                  <div className="profile-streak-value">{streaks.totalActiveDays}</div>
+                  <div className="profile-streak-label">Total Active Days</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Streak Calendar */}
+            <div className="profile-section">
+              <h2 className="profile-section-title">📅 Activity Calendar (Last 30 Days)</h2>
+              <div className="profile-streak-calendar">
+                {Array.from({ length: 30 }, (_, i) => {
+                  const date = new Date();
+                  date.setDate(date.getDate() - (29 - i));
+                  const dateStr = date.toISOString().split('T')[0];
+                  const isActive = streaks.streakHistory?.includes(dateStr);
+                  return (
+                    <div 
+                      key={i}
+                      className={`profile-calendar-day ${isActive ? 'active' : ''}`}
+                      title={date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    >
+                      <span className="calendar-day-number">{date.getDate()}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="profile-calendar-legend">
+                <span className="legend-item"><span className="legend-inactive"></span> Inactive</span>
+                <span className="legend-item"><span className="legend-active"></span> Active</span>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
             <div className="profile-section">
               <h2 className="profile-section-title">⚡ Recent Activity</h2>
               <div className="profile-activity-list">
@@ -362,20 +491,53 @@ function Profile() {
         {activeTab === 'achievements' && (
           <div className="profile-tab-content">
             <div className="profile-section">
-              <h2 className="profile-section-title">🏆 Achievements</h2>
-              <div className="profile-achievements-grid">
-                {achievements.map((achievement, index) => (
-                  <div 
-                    key={index}
-                    className={`profile-achievement ${achievement.unlocked ? 'unlocked' : 'locked'}`}
-                  >
-                    <div className="profile-achievement-icon">{achievement.icon}</div>
-                    <div className="profile-achievement-label">{achievement.label}</div>
-                    {achievement.unlocked && <div className="profile-achievement-badge">✓</div>}
-                  </div>
-                ))}
+              <h2 className="profile-section-title">🏆 Achievements ({unlockedCount}/{achievements.length})</h2>
+              <div className="profile-achievement-progress">
+                <div 
+                  className="profile-achievement-progress-fill"
+                  style={{ width: `${(unlockedCount / achievements.length) * 100}%` }}
+                ></div>
               </div>
+              <p className="profile-achievement-progress-text">
+                {unlockedCount} of {achievements.length} badges unlocked
+              </p>
             </div>
+
+            {/* Group achievements by category */}
+            {['starter', 'savings', 'goals', 'tasks', 'streaks', 'activity', 'special'].map(category => {
+              const categoryAchievements = achievements.filter(a => a.category === category);
+              const categoryLabels = {
+                starter: '🚀 Getting Started',
+                savings: '💰 Savings Milestones',
+                goals: '🎯 Goal Achievements',
+                tasks: '✅ Task Achievements',
+                streaks: '🔥 Streak Achievements',
+                activity: '📊 Activity Achievements',
+                special: '🌟 Special Achievements'
+              };
+              
+              return (
+                <div key={category} className="profile-section">
+                  <h2 className="profile-section-title">{categoryLabels[category]}</h2>
+                  <div className="profile-achievements-grid">
+                    {categoryAchievements.map((achievement, index) => (
+                      <div 
+                        key={index}
+                        className={`profile-achievement ${achievement.unlocked ? 'unlocked' : 'locked'}`}
+                        title={achievement.description}
+                      >
+                        <div className="profile-achievement-icon">{achievement.icon}</div>
+                        <div className="profile-achievement-info">
+                          <div className="profile-achievement-label">{achievement.label}</div>
+                          <div className="profile-achievement-desc">{achievement.description}</div>
+                        </div>
+                        {achievement.unlocked && <div className="profile-achievement-badge">✓</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
 
             {/* Logout Section */}
             <div className="profile-section">
@@ -384,6 +546,139 @@ function Profile() {
                 <span className="profile-logout-icon">🚪</span>
                 <span>Logout</span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="profile-tab-content">
+            {/* Spending by Category */}
+            <div className="profile-section">
+              <h2 className="profile-section-title">🥧 Spending by Category</h2>
+              {topCategories.length > 0 ? (
+                <div className="profile-analytics-chart">
+                  <div className="profile-pie-wrapper">
+                    <div className="profile-pie-chart">
+                      {topCategories.map(([category, amount], index) => {
+                        const percentage = ((amount / totalExpenses) * 100).toFixed(1);
+                        const colors = ['#22c55e', '#16a34a', '#15803d', '#166534', '#14532d'];
+                        return (
+                          <div 
+                            key={category}
+                            className="profile-pie-segment"
+                            style={{
+                              '--percentage': percentage,
+                              '--color': colors[index % colors.length],
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="profile-pie-center">
+                      <div className="profile-pie-total">₹{totalExpenses.toFixed(0)}</div>
+                      <div className="profile-pie-label">Total Spent</div>
+                    </div>
+                  </div>
+                  
+                  <div className="profile-chart-legend">
+                    {topCategories.map(([category, amount], index) => {
+                      const percentage = ((amount / totalExpenses) * 100).toFixed(1);
+                      const colors = ['#22c55e', '#16a34a', '#15803d', '#166534', '#14532d'];
+                      return (
+                        <div key={category} className="profile-legend-item">
+                          <div 
+                            className="profile-legend-color" 
+                            style={{ backgroundColor: colors[index % colors.length] }}
+                          />
+                          <div className="profile-legend-content">
+                            <div className="profile-legend-category">{category}</div>
+                            <div className="profile-legend-amount">₹{amount.toFixed(0)} ({percentage}%)</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="profile-empty-state">
+                  <span className="profile-empty-icon">📊</span>
+                  <p>No expense data yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* Monthly Trends */}
+            <div className="profile-section">
+              <h2 className="profile-section-title">📈 Monthly Trends</h2>
+              {monthlyData.length > 0 ? (
+                <div className="profile-trends-chart">
+                  <div className="profile-chart-bars">
+                    {monthlyData.map((month, index) => (
+                      <div key={index} className="profile-chart-month">
+                        <div className="profile-bars-group">
+                          <div 
+                            className="profile-bar income"
+                            style={{ height: `${(month.income / maxMonthlyAmount) * 100}%` }}
+                            title={`Income: ₹${month.income.toFixed(0)}`}
+                          >
+                            <span className="profile-bar-value">₹{(month.income / 1000).toFixed(0)}k</span>
+                          </div>
+                          <div 
+                            className="profile-bar expense"
+                            style={{ height: `${(month.expense / maxMonthlyAmount) * 100}%` }}
+                            title={`Expense: ₹${month.expense.toFixed(0)}`}
+                          >
+                            <span className="profile-bar-value">₹{(month.expense / 1000).toFixed(0)}k</span>
+                          </div>
+                        </div>
+                        <div className="profile-month-label">{month.month}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="profile-chart-legend-h">
+                    <div className="profile-legend-h-item">
+                      <div className="profile-legend-color" style={{ backgroundColor: '#22c55e' }} />
+                      <span>Income</span>
+                    </div>
+                    <div className="profile-legend-h-item">
+                      <div className="profile-legend-color" style={{ backgroundColor: '#ef4444' }} />
+                      <span>Expense</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="profile-empty-state">
+                  <span className="profile-empty-icon">📈</span>
+                  <p>No transaction data yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Stats */}
+            <div className="profile-section">
+              <h2 className="profile-section-title">📊 Quick Stats</h2>
+              <div className="profile-analytics-stats">
+                <div className="profile-analytics-stat">
+                  <div className="profile-analytics-stat-icon">📝</div>
+                  <div className="profile-analytics-stat-value">{finances.length}</div>
+                  <div className="profile-analytics-stat-label">Transactions</div>
+                </div>
+                <div className="profile-analytics-stat">
+                  <div className="profile-analytics-stat-icon">🎯</div>
+                  <div className="profile-analytics-stat-value">{goals.filter(g => !g.completed).length}</div>
+                  <div className="profile-analytics-stat-label">Active Goals</div>
+                </div>
+                <div className="profile-analytics-stat">
+                  <div className="profile-analytics-stat-icon">📊</div>
+                  <div className="profile-analytics-stat-value">{Object.keys(expensesByCategory).length}</div>
+                  <div className="profile-analytics-stat-label">Categories</div>
+                </div>
+                <div className="profile-analytics-stat">
+                  <div className="profile-analytics-stat-icon">💰</div>
+                  <div className="profile-analytics-stat-value">₹{(totalIncome / 1000).toFixed(1)}k</div>
+                  <div className="profile-analytics-stat-label">Total Income</div>
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -1,0 +1,45 @@
+# Netlify Deployment Configuration
+
+# Build settings
+[build]
+  command = "npm run build"
+  publish = "build"
+  functions = "netlify/functions"
+
+# Environment variables
+[build.environment]
+  NODE_VERSION = "18"
+  REACT_APP_API_URL = "https://your-backend-url.com/api"
+
+# Redirect rules
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for PWA
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Service Worker caching
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Static assets caching
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Manifest caching
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
