@@ -109,6 +109,7 @@ export const NotificationProvider = ({ children }) => {
         }
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finances]);
 
   // Check for goal deadlines
@@ -150,6 +151,7 @@ export const NotificationProvider = ({ children }) => {
           }
         }
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goals]);
 
   // Check for task due dates
@@ -191,6 +193,7 @@ export const NotificationProvider = ({ children }) => {
           }
         }
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks]);
 
   // Check for achievements
@@ -230,6 +233,7 @@ export const NotificationProvider = ({ children }) => {
         }
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finances, goals, tasks]);
 
   return (

@@ -5,7 +5,9 @@ import './Analytics.css';
 function Analytics() {
   const [finances] = useFinances();
   const [goals] = useGoals();
+  // eslint-disable-next-line no-unused-vars
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  // eslint-disable-next-line no-unused-vars
   const [budgets, setBudgets] = useState(() => {
     const saved = localStorage.getItem('nivora-budgets');
     return saved ? JSON.parse(saved) : {

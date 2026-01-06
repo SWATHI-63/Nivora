@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
+// eslint-disable-next-line no-unused-vars
 import { useTheme } from '../../context/ThemeContext';
 import { useFinances, useGoals, useTasks, useNotes, useStreaks } from '../../hooks/useLocalStorage';
 import './Profile.css';

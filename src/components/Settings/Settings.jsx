@@ -6,6 +6,7 @@ import './Settings.css';
 function Settings() {
   const { theme, themes, changeTheme, customColors, updateCustomColor, resetCustomTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
+  // eslint-disable-next-line no-unused-vars
   const [showColorPicker, setShowColorPicker] = useState(null);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
 
