@@ -63,7 +63,7 @@ function Register({ onSwitchToLogin }) {
         <div className="auth-header">
           <div className="auth-logo">💎</div>
           <h1 className="auth-title">Create Account</h1>
-          <p className="auth-subtitle">Start your journey with Nivora</p>
+          <p className="auth-subtitle">Start your journey with Novira</p>
         </div>
 
         {message.text && (

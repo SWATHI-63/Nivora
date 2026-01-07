@@ -33,7 +33,7 @@ function Login({ onSwitchToRegister }) {
         <div className="auth-header">
           <div className="auth-logo">💎</div>
           <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Sign in to continue to Nivora</p>
+          <p className="auth-subtitle">Sign in to continue to Novira</p>
         </div>
 
         {message.text && (

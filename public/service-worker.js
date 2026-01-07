@@ -1,5 +1,5 @@
-const CACHE_NAME = 'nivora-v2';
-const API_CACHE = 'nivora-api-v1';
+const CACHE_NAME = 'novira-v2';
+const API_CACHE = 'novira-api-v1';
 
 // Assets to cache immediately on install
 const STATIC_ASSETS = [
@@ -117,11 +117,11 @@ async function syncData() {
 // Push notifications support
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Nivora';
+  const title = data.title || 'Novira';
   const options = {
     body: data.body || 'You have a new notification',
-    icon: '/nivora-logo.svg',
-    badge: '/nivora-logo.svg',
+    icon: '/novira-logo.png',
+    badge: '/novira-logo.png',
     data: data.url || '/'
   };
 

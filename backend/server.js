@@ -33,7 +33,7 @@ app.get('/api/health', (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   res.json({ 
     status: 'ok', 
-    message: 'Nivora API is running',
+    message: 'Novira API is running',
     database: dbStatus,
     timestamp: new Date().toISOString()
   });

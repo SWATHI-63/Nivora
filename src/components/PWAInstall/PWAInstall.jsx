@@ -74,7 +74,7 @@ const PWAInstall = () => {
       <div className="pwa-install-content">
         <div className="pwa-install-icon">📱</div>
         <div className="pwa-install-text">
-          <h4>Install Nivora App</h4>
+          <h4>Install Novira App</h4>
           <p>
             {isIOS 
               ? 'Tap the share button and select "Add to Home Screen"' 
