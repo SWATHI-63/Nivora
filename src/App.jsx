@@ -59,7 +59,7 @@ function AppContent() {
       <header className="app-header">
         <div className="header-content">
           <div className="app-logo">
-            <img src="/novira-logo.png" alt="Novira Logo" style={{ height: '40px' }} />
+            <img src="/nivora-logo.png" alt="Nivora Logo" style={{ height: '40px' }} />
           </div>
           <div className="header-actions">
             <button 

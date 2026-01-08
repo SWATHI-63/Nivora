@@ -120,8 +120,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Novira';
   const options = {
     body: data.body || 'You have a new notification',
-    icon: '/novira-logo.png',
-    badge: '/novira-logo.png',
+    icon: '/nivora-logo.png',
+    badge: '/nivora-logo.png',
     data: data.url || '/'
   };
 
