@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useTasks, useLocalStorage } from '../../hooks/useLocalStorage';
 import './Tasks.css';
 
@@ -53,7 +54,8 @@ function Tasks() {
       ...formData,
       weekKey: weekKey,
       date: new Date().toISOString(),
-      completed: false
+      completed: false,
+      order: weekTasks.length
     };
     setTasks([newTask, ...tasks]);
     setShowModal(false);
@@ -94,6 +96,30 @@ function Tasks() {
     setTimeout(() => setReflectionSaved(false), 2000);
   };
 
+  // Drag and drop handler
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+
+    const sourceIndex = result.source.index;
+    const destIndex = result.destination.index;
+
+    if (sourceIndex === destIndex) return;
+
+    const reorderedTasks = Array.from(weekTasks);
+    const [movedTask] = reorderedTasks.splice(sourceIndex, 1);
+    reorderedTasks.splice(destIndex, 0, movedTask);
+
+    // Update order property
+    const updatedTasks = reorderedTasks.map((task, index) => ({
+      ...task,
+      order: index
+    }));
+
+    // Merge with other weeks' tasks
+    const otherTasks = tasks.filter(task => task.weekKey !== weekKey);
+    setTasks([...otherTasks, ...updatedTasks]);
+  };
+
   const completedCount = weekTasks.filter(t => t.completed).length;
   const inProgressCount = weekTasks.filter(t => t.status === 'in-progress').length;
 
@@ -132,47 +158,93 @@ function Tasks() {
       </div>
 
       {weekTasks.length > 0 ? (
-        <div className="tasks-list">
-          {weekTasks.map((task) => (
-            <div key={task.id} className="task-card">
-              <div className="task-main">
-                <div
-                  className={`task-checkbox ${task.completed ? 'checked' : ''}`}
-                  onClick={() => toggleTaskComplete(task.id)}
-                />
-                <div className="task-content">
-                  <h3 className={`task-title ${task.completed ? 'completed' : ''}`}>
-                    {task.title}
-                  </h3>
-                  {task.description && (
-                    <p className="task-description">{task.description}</p>
-                  )}
-                  <div className="task-meta">
-                    <span className="task-meta-item">
-                      📅 {new Date(task.date).toLocaleDateString()}
-                    </span>
-                    <span className="task-meta-item">
-                      {task.priority === 'high' ? '🔴' : task.priority === 'medium' ? '🟡' : '🟢'} {task.priority} priority
-                    </span>
-                  </div>
-                </div>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="tasks">
+            {(provided, snapshot) => (
+              <div
+                className={`tasks-list ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+              >
+                {weekTasks
+                  .sort((a, b) => (a.order || 0) - (b.order || 0))
+                  .map((task, index) => (
+                    <Draggable
+                      key={task.id}
+                      draggableId={task.id.toString()}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={`task-card ${snapshot.isDragging ? 'dragging' : ''}`}
+                          style={{
+                            ...provided.draggableProps.style,
+                            opacity: snapshot.isDragging ? 0.8 : 1,
+                          }}
+                        >
+                          <div className="task-drag-handle">⋮⋮</div>
+                          <div className="task-main">
+                            <div
+                              className={`task-checkbox ${task.completed ? 'checked' : ''}`}
+                              onClick={() => toggleTaskComplete(task.id)}
+                            />
+                            <div className="task-content">
+                              <h3 className={`task-title ${task.completed ? 'completed' : ''}`}>
+                                {task.title}
+                              </h3>
+                              {task.description && (
+                                <p className="task-description">{task.description}</p>
+                              )}
+                              <div className="task-meta">
+                                <span className="task-meta-item">
+                                  📅 {new Date(task.date).toLocaleDateString()}
+                                </span>
+                                <span className="task-meta-item">
+                                  {task.priority === 'high' ? '🔴' : task.priority === 'medium' ? '🟡' : '🟢'} {task.priority} priority
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="task-footer">
+                            <span className={`status-badge ${task.status}`}>{task.status}</span>
+                            <div className="task-actions">
+                              {!task.completed && task.status !== 'in-progress' && (
+                                <button
+                                  className="task-action-btn"
+                                  onClick={() => updateTaskStatus(task.id, 'in-progress')}
+                                >
+                                  Start
+                                </button>
+                              )}
+                              {task.status === 'in-progress' && !task.completed && (
+                                <button
+                                  className="task-action-btn"
+                                  onClick={() => updateTaskStatus(task.id, 'pending')}
+                                >
+                                  Pause
+                                </button>
+                              )}
+                              <button
+                                className="task-action-btn delete"
+                                onClick={() => deleteTask(task.id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                {provided.placeholder}
               </div>
-              <div className="task-footer">
-                <span className={`status-badge ${task.status}`}>{task.status}</span>
-                <div className="task-actions">
-                  {!task.completed && task.status !== 'in-progress' && (
-                    <button
-                      className="task-action-btn"
-                      onClick={() => updateTaskStatus(task.id, 'in-progress')}
-                    >
-                      Start
-                    </button>
-                  )}
-                  {task.status === 'in-progress' && !task.completed && (
-                    <button
-                      className="task-action-btn"
-                      onClick={() => updateTaskStatus(task.id, 'pending')}
-                    >
+            )}
+          </Droppable>
+        </DragDropContext>
+      ) : (                    >
                       Pause
                     </button>
                   )}

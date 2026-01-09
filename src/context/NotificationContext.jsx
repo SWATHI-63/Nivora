@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useFinances, useGoals, useTasks } from '../hooks/useLocalStorage';
+import notificationService from '../services/notificationService';
+import { toast } from 'react-toastify';
 
 const NotificationContext = createContext();
 
@@ -233,6 +235,134 @@ export const NotificationProvider = ({ children }) => {
         }
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finances, goals, tasks]);
+
+  // Smart reminders and alerts using notification service
+  useEffect(() => {
+    const runChecks = async () => {
+      // Request notification permission
+      if (notificationService.permission === 'default') {
+        await notificationService.requestPermission();
+      }
+
+      // Check for due bills
+      const billAlerts = notificationService.checkDueBills(finances);
+      billAlerts.forEach(alert => {
+        addNotification(alert);
+        if (alert.daysUntilDue <= 1) {
+          notificationService.sendNotification(alert.title, { body: alert.message });
+          toast.warning(`${alert.message}`);
+        }
+      });
+
+      // Check low balance
+      const totalIncome = finances.filter(f => f.type === 'income').reduce((sum, f) => sum + f.amount, 0);
+      const totalExpenses = finances.filter(f => f.type === 'expense').reduce((sum, f) => sum + f.amount, 0);
+      const balance = totalIncome - totalExpenses;
+      
+      const lowBalanceAlert = notificationService.checkLowBalance(balance, 1000);
+      if (lowBalanceAlert) {
+        const recentLowBalance = notifications.find(n => 
+          n.type === 'low-balance' &&
+          new Date(n.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+        );
+        if (!recentLowBalance) {
+          addNotification(lowBalanceAlert);
+          toast.error(lowBalanceAlert.message);
+        }
+      }
+
+      // Check goal milestones
+      const goalCelebrations = notificationService.checkGoalMilestones(goals);
+      goalCelebrations.forEach(celebration => {
+        const alreadyCelebrated = notifications.find(n => 
+          n.goalId === celebration.goalId && 
+          n.milestone === celebration.milestone
+        );
+        if (!alreadyCelebrated) {
+          addNotification(celebration);
+          notificationService.sendNotification(celebration.title, { body: celebration.message });
+          toast.success(celebration.message, { autoClose: 5000 });
+        }
+      });
+
+      // Check spending patterns
+      const spendingAlerts = notificationService.analyzeSpendingPatterns(finances);
+      spendingAlerts.forEach(alert => {
+        const recentSpending = notifications.find(n => 
+          n.type === alert.type &&
+          new Date(n.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        );
+        if (!recentSpending) {
+          addNotification(alert);
+          toast.info(alert.message);
+        }
+      });
+
+      // Check overdue tasks
+      const overdueAlert = notificationService.checkOverdueTasks(tasks);
+      if (overdueAlert) {
+        const recentOverdue = notifications.find(n => 
+          n.type === 'overdue-tasks' &&
+          new Date(n.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+        );
+        if (!recentOverdue) {
+          addNotification(overdueAlert);
+          toast.warning(overdueAlert.message);
+        }
+      }
+    };
+
+    // Run checks immediately and schedule
+    runChecks();
+    const interval = setInterval(runChecks, 60 * 60 * 1000); // Every hour
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finances, goals, tasks]);
+
+  // Weekly summary (on Mondays)
+  useEffect(() => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    
+    // Check if it's Monday and we haven't sent weekly summary today
+    if (dayOfWeek === 1) {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const recentSummary = notifications.find(n => 
+        n.type === 'weekly-summary' &&
+        new Date(n.timestamp) > todayStart
+      );
+
+      if (!recentSummary) {
+        const summary = notificationService.generateWeeklySummary(finances, goals, tasks);
+        addNotification(summary);
+        toast.info(summary.message, { autoClose: 7000 });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finances, goals, tasks]);
+
+  // Monthly summary (on 1st of month)
+  useEffect(() => {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    
+    // Check if it's 1st of month and we haven't sent monthly summary today
+    if (dayOfMonth === 1) {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const recentSummary = notifications.find(n => 
+        n.type === 'monthly-summary' &&
+        new Date(n.timestamp) > todayStart
+      );
+
+      if (!recentSummary) {
+        const summary = notificationService.generateMonthlySummary(finances, goals, tasks);
+        addNotification(summary);
+        toast.success(summary.message, { autoClose: 10000 });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finances, goals, tasks]);
 

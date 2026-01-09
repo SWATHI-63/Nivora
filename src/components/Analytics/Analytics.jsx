@@ -1,14 +1,40 @@
 import React, { useState, useMemo } from 'react';
 import { useFinances, useGoals } from '../../hooks/useLocalStorage';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import './Analytics.css';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 function Analytics() {
   const [finances] = useFinances();
   const [goals] = useGoals();
-  // eslint-disable-next-line no-unused-vars
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  // eslint-disable-next-line no-unused-vars
-  const [budgets, setBudgets] = useState(() => {
+  const [budgets] = useState(() => {
     const saved = localStorage.getItem('nivora-budgets');
     return saved ? JSON.parse(saved) : {
       Food: 5000,
@@ -96,6 +122,139 @@ function Analytics() {
     1
   );
 
+  // Chart.js configuration
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: 'var(--text-primary)',
+          padding: 15,
+          font: {
+            size: 12
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: { size: 14 },
+        bodyFont: { size: 13 }
+      }
+    }
+  };
+
+  // Doughnut chart data for spending by category
+  const doughnutData = {
+    labels: topCategories.map(([cat]) => cat),
+    datasets: [{
+      data: topCategories.map(([, amount]) => amount),
+      backgroundColor: [
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(245, 158, 11, 0.8)',
+        'rgba(16, 185, 129, 0.8)',
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(139, 92, 246, 0.8)'
+      ],
+      borderColor: [
+        'rgb(239, 68, 68)',
+        'rgb(245, 158, 11)',
+        'rgb(16, 185, 129)',
+        'rgb(59, 130, 246)',
+        'rgb(139, 92, 246)'
+      ],
+      borderWidth: 2
+    }]
+  };
+
+  // Bar chart data for monthly trends
+  const barData = {
+    labels: monthlyData.map(m => m.month),
+    datasets: [
+      {
+        label: 'Income',
+        data: monthlyData.map(m => m.income),
+        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+        borderColor: 'rgb(16, 185, 129)',
+        borderWidth: 2
+      },
+      {
+        label: 'Expenses',
+        data: monthlyData.map(m => m.expense),
+        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+        borderColor: 'rgb(239, 68, 68)',
+        borderWidth: 2
+      }
+    ]
+  };
+
+  // Line chart for trend analysis
+  const lineData = {
+    labels: monthlyData.map(m => m.month),
+    datasets: [
+      {
+        label: 'Net Savings',
+        data: monthlyData.map(m => m.income - m.expense),
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.4,
+        borderWidth: 3,
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }
+    ]
+  };
+
+  const barOptions = {
+    ...chartOptions,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: 'var(--text-secondary)',
+          callback: (value) => '₹' + (value / 1000).toFixed(0) + 'k'
+        },
+        grid: {
+          color: 'rgba(128, 128, 128, 0.1)'
+        }
+      },
+      x: {
+        ticks: {
+          color: 'var(--text-secondary)'
+        },
+        grid: {
+          display: false
+        }
+      }
+    }
+  };
+
+  const lineOptions = {
+    ...chartOptions,
+    scales: {
+      y: {
+        ticks: {
+          color: 'var(--text-secondary)',
+          callback: (value) => '₹' + (value / 1000).toFixed(0) + 'k'
+        },
+        grid: {
+          color: 'rgba(128, 128, 128, 0.1)'
+        }
+      },
+      x: {
+        ticks: {
+          color: 'var(--text-secondary)'
+        },
+        grid: {
+          display: false
+        }
+      }
+    }
+  };
+
   return (
     <div className="analytics-container">
       <div className="analytics-header">
@@ -150,88 +309,25 @@ function Analytics() {
       <div className="analytics-section">
         <h2 className="section-title">🥧 Spending by Category</h2>
         <div className="chart-container">
-          <div className="pie-chart-wrapper">
-            <div className="pie-chart">
-              {topCategories.map(([category, amount], index) => {
-                const percentage = ((amount / totalExpenses) * 100).toFixed(1);
-                const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
-                return (
-                  <div 
-                    key={category}
-                    className="pie-slice"
-                    style={{
-                      '--percentage': percentage,
-                      '--color': colors[index % colors.length],
-                      '--index': index
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <div className="pie-chart-center">
-              <div className="pie-chart-total">₹{totalExpenses.toFixed(0)}</div>
-              <div className="pie-chart-label">Total</div>
-            </div>
-          </div>
-          
-          <div className="chart-legend">
-            {topCategories.map(([category, amount], index) => {
-              const percentage = ((amount / totalExpenses) * 100).toFixed(1);
-              const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
-              return (
-                <div key={category} className="legend-item">
-                  <div 
-                    className="legend-color" 
-                    style={{ backgroundColor: colors[index % colors.length] }}
-                  />
-                  <div className="legend-content">
-                    <div className="legend-category">{category}</div>
-                    <div className="legend-amount">₹{amount.toFixed(0)} ({percentage}%)</div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="chart-wrapper" style={{ height: '350px' }}>
+            <Doughnut data={doughnutData} options={chartOptions} />
           </div>
         </div>
       </div>
 
       {/* Monthly Trends */}
       <div className="analytics-section">
-        <h2 className="section-title">📈 Monthly Trends</h2>
-        <div className="trends-chart">
-          <div className="chart-bars">
-            {monthlyData.map((month, index) => (
-              <div key={index} className="chart-month">
-                <div className="chart-bars-group">
-                  <div 
-                    className="chart-bar income"
-                    style={{ height: `${(month.income / maxMonthlyAmount) * 100}%` }}
-                    title={`Income: ₹${month.income.toFixed(0)}`}
-                  >
-                    <span className="bar-value">₹{(month.income / 1000).toFixed(0)}k</span>
-                  </div>
-                  <div 
-                    className="chart-bar expense"
-                    style={{ height: `${(month.expense / maxMonthlyAmount) * 100}%` }}
-                    title={`Expense: ₹${month.expense.toFixed(0)}`}
-                  >
-                    <span className="bar-value">₹{(month.expense / 1000).toFixed(0)}k</span>
-                  </div>
-                </div>
-                <div className="chart-month-label">{month.month}</div>
-              </div>
-            ))}
-          </div>
-          <div className="chart-legend-horizontal">
-            <div className="legend-item-h">
-              <div className="legend-color" style={{ backgroundColor: '#10b981' }} />
-              <span>Income</span>
-            </div>
-            <div className="legend-item-h">
-              <div className="legend-color" style={{ backgroundColor: '#ef4444' }} />
-              <span>Expense</span>
-            </div>
-          </div>
+        <h2 className="section-title">📈 Monthly Income vs Expenses</h2>
+        <div className="chart-wrapper" style={{ height: '350px' }}>
+          <Bar data={barData} options={barOptions} />
+        </div>
+      </div>
+
+      {/* Net Savings Trend */}
+      <div className="analytics-section">
+        <h2 className="section-title">💰 Net Savings Trend</h2>
+        <div className="chart-wrapper" style={{ height: '300px' }}>
+          <Line data={lineData} options={lineOptions} />
         </div>
       </div>
 

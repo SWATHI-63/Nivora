@@ -44,6 +44,19 @@
   border: 1px solid var(--border-color);
 }
 
+/* Chart Wrapper */
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  padding: 1rem;
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
 /* Budget Alerts */
 .analytics-alerts {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
