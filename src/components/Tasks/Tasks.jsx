@@ -244,21 +244,6 @@ function Tasks() {
             )}
           </Droppable>
         </DragDropContext>
-      ) : (                    >
-                      Pause
-                    </button>
-                  )}
-                  <button
-                    className="task-action-btn delete"
-                    onClick={() => deleteTask(task.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       ) : (
         <div className="empty-state">
           <div className="empty-state-icon">📝</div>
